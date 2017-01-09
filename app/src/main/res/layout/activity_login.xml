@@ -70,7 +70,7 @@
                 android:orientation="horizontal">
 
                 <Button
-                    android:id="@+id/email_sign_in_button"
+                    android:id="@+id/email_login_button"
                     style="?android:textAppearanceSmall"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
