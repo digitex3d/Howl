@@ -36,12 +36,19 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executor;
 
 import tpdev.megaphone.tpdev.megaphone.db.DataBase;
 import tpdev.megaphone.tpdev.megaphone.db.User;
 
 import static android.Manifest.permission.READ_CONTACTS;
 import static tpdev.megaphone.R.id.email;
+
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.AuthResult;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
 /**
  * A login screen that offers login via email/password.
@@ -53,17 +60,12 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
      */
     private static final int REQUEST_READ_CONTACTS = 0;
 
-    /**
-     * A dummy authentication store containing known user names and passwords.
-     * TODO: remove after connecting to a real authentication system.
-     */
-    private static final String[] DUMMY_CREDENTIALS = new String[]{
-            "foo@example.com:hello", "bar@example.com:world"
-    };
-    /**
-     * Keep track of the login task to ensure we can cancel it if requested.
-     */
-    private UserLoginTask mAuthTask = null;
+    private static final String TAG = "LOGIN_DEBUG";
+
+    //Get Firebase auth instance
+    private FirebaseAuth mAuth;
+    private FirebaseAuth.AuthStateListener mAuthListener;
+
 
     // UI references.
     private AutoCompleteTextView mUserView;
@@ -73,9 +75,33 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
     private DataBase db;
 
     @Override
+    public void onStart() {
+        super.onStart();
+        mAuth.addAuthStateListener(mAuthListener);
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
+
+        mAuth = FirebaseAuth.getInstance();
+
+        // Sign in/out listener
+        mAuthListener = new FirebaseAuth.AuthStateListener() {
+            @Override
+            public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
+                FirebaseUser user = firebaseAuth.getCurrentUser();
+                if (user != null) {
+                    // User is signed in
+                    Log.d(TAG, "onAuthStateChanged:signed_in:" + user.getUid());
+                } else {
+                    // User is signed out
+                    Log.d(TAG, "onAuthStateChanged:signed_out");
+                }
+                // ...
+            }
+        };
 
         // Init Database
         //TODO: Initialiser le DB ailleurs
@@ -170,54 +196,43 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
      * Register to the app
      */
     private void register(){
-        // Reset errors.
-        mUserView.setError(null);
-        mPasswordView.setError(null);
-
-        boolean cancel = false;
-        View focusView = null;
-
         // Store values at the time of the login attempt.
-        String user = mUserView.getText().toString();
+        String email = mUserView.getText().toString();
         String password = mPasswordView.getText().toString();
 
-        // Check if the user already exists
-        if( this.db.getCollection_users().containsKey(user)){
-            mUserView.setError("User already registered");
-            focusView = mUserView;
+        validateForm(email, password);
 
-        } else {
-            db.getCollection_users().put(user, new User(user, password));
-            Toast.makeText(getApplicationContext(), "User " + user + " registered.",
-                    Toast.LENGTH_SHORT).show();
+        mAuth.createUserWithEmailAndPassword(email, password)
+                .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
+                    @Override
+                    public void onComplete(@NonNull Task<AuthResult> task) {
 
-        }
+                        // If sign in fails, display a message to the user. If sign in succeeds
+                        // the auth state listener will be notified and logic to handle the
+                        // signed in user can be handled in the listener.
+                        if (!task.isSuccessful()) {
+                            Toast.makeText(LoginActivity.this, "Authentication failed.",
+                                    Toast.LENGTH_SHORT).show();
+                        }
 
-        if (cancel) {
-            // There was an error; don't attempt login and focus the first
-            // form field with an error.
-            focusView.requestFocus();
-        }
+                        Log.d(TAG, "createUserWithEmail:onComplete:" + task.isSuccessful());
+
+                        Toast.makeText(LoginActivity.this, "User registered.",
+                                Toast.LENGTH_SHORT).show();
+
+                        showProgress(false);
+                    }
+                });
 
     }
 
     /**
-     * Attempts to sign in or register the account specified by the login form.
-     * If there are form errors (invalid email, missing fields, etc.), the
-     * errors are presented and no actual login attempt is made.
+     * Validation du formulaire d'inscription.
      */
-    private void attemptLogin() {
-        if (mAuthTask != null) {
-            return;
-        }
-
+    private void validateForm(String email, String password){
         // Reset errors.
         mUserView.setError(null);
         mPasswordView.setError(null);
-
-        // Store values at the time of the login attempt.
-        String email = mUserView.getText().toString();
-        String password = mPasswordView.getText().toString();
 
         boolean cancel = false;
         View focusView = null;
@@ -240,6 +255,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             cancel = true;
         }
 
+
         if (cancel) {
             // There was an error; don't attempt login and focus the first
             // form field with an error.
@@ -248,9 +264,51 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             // Show a progress spinner, and kick off a background task to
             // perform the user login attempt.
             showProgress(true);
-            mAuthTask = new UserLoginTask(email, password, db);
-            mAuthTask.execute((Void) null);
+
+
         }
+
+    }
+
+    /**
+     * Attempts to sign in to the account specified by the login form.
+     * If there are form errors (invalid email, missing fields, etc.), the
+     * errors are presented and no actual login attempt is made.
+     */
+    private void attemptLogin() {
+        // Store values at the time of the login attempt.
+        String email = mUserView.getText().toString();
+        String password = mPasswordView.getText().toString();
+
+        validateForm(email, password);
+
+        // signIng
+        mAuth.signInWithEmailAndPassword(email, password)
+                .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
+                    @Override
+                    public void onComplete(@NonNull Task<AuthResult> task) {
+                        Log.d(TAG, "signInWithEmail:onComplete:" + task.isSuccessful());
+
+
+
+                        // If sign in fails, display a message to the user. If sign in succeeds
+                        // the auth state listener will be notified and logic to handle the
+                        // signed in user can be handled in the listener.
+                        if (!task.isSuccessful()) {
+                            Log.w(TAG, "signInWithEmail", task.getException());
+                            Toast.makeText(LoginActivity.this, "Authentication failed.",
+                                    Toast.LENGTH_SHORT).show();
+
+                        }
+
+                        // Changer d'activité , passer à la map
+                        // ......
+
+                        showProgress(false);
+                    }
+                });
+
+
     }
 
     private boolean isUsernameValid(String username) {
@@ -353,52 +411,5 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         int IS_PRIMARY = 1;
     }
 
-    /**
-     * Represents an asynchronous login task used to authenticate
-     * the user.
-     */
-    public class UserLoginTask extends AsyncTask<Void, Void, Boolean> {
-
-        private final String mUser;
-        private final String mPassword;
-        private final DataBase mdb;
-
-        UserLoginTask(String user, String password, DataBase db) {
-            mUser = user;
-            mPassword = password;
-            this.mdb = db;
-
-        }
-
-        @Override
-        protected Boolean doInBackground(Void... params) {
-            User user = (User) mdb.getCollection_users().get(mUser);
-
-            if( user == null ) return false;
-
-            // Check username
-            return user.getPassword().equals(mPassword);
-
-        }
-
-        @Override
-        protected void onPostExecute(final Boolean success) {
-            mAuthTask = null;
-            showProgress(false);
-
-            if (success) {
-                finish();
-            } else {
-                mPasswordView.setError(getString(R.string.error_incorrect_password));
-                mPasswordView.requestFocus();
-            }
-        }
-
-        @Override
-        protected void onCancelled() {
-            mAuthTask = null;
-            showProgress(false);
-        }
-    }
 }
 
