@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "365051054665",
+    "firebase_url": "https://howl-488fc.firebaseio.com",
+    "project_id": "howl-488fc",
+    "storage_bucket": "howl-488fc.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:365051054665:android:83234b72a874cf3e",
+        "android_client_info": {
+          "package_name": "tpdev.megaphone"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "365051054665-j9h2i0kk966un8gufvbvm1rdbparv3th.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "tpdev.megaphone",
+            "certificate_hash": "2D05B2F88E96C69A67BB4163358D492CA1F8983F"
+          }
+        },
+        {
+          "client_id": "365051054665-160rgu3ac2b71jq558v0hhfqtbv09efd.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyASxZp9OYBzEcFUMEiHkORMISseHBbVvqw"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "365051054665-160rgu3ac2b71jq558v0hhfqtbv09efd.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
