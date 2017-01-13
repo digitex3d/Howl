@@ -15,6 +15,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "365051054665-84k84lnsl7gk6koghdgbk6pf4vipmvbc.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "tpdev.megaphone",
+            "certificate_hash": "4F664F0DF1D12919AAD3D125BB1162B893B46001"
+          }
+        },
+        {
           "client_id": "365051054665-j9h2i0kk966un8gufvbvm1rdbparv3th.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

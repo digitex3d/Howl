@@ -3,7 +3,9 @@ package tpdev.megaphone;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
+import android.app.Activity;
 import android.app.Application;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
@@ -38,10 +40,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
 
-import tpdev.megaphone.tpdev.megaphone.db.DataBase;
-import tpdev.megaphone.tpdev.megaphone.db.User;
 
 import static android.Manifest.permission.READ_CONTACTS;
+import static android.os.Build.VERSION_CODES.M;
 import static tpdev.megaphone.R.id.email;
 
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -49,6 +50,11 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+
+import tpdev.megaphone.db.Message;
+import tpdev.megaphone.db.MessageFactory;
 
 /**
  * A login screen that offers login via email/password.
@@ -72,7 +78,6 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
     private EditText mPasswordView;
     private View mProgressView;
     private View mLoginFormView;
-    private DataBase db;
 
     @Override
     public void onStart() {
@@ -102,13 +107,6 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                 // ...
             }
         };
-
-        // Init Database
-        //TODO: Initialiser le DB ailleurs
-        ((HowlApplication) this.getApplication()).setSomeVariable(new DataBase());
-
-        // Set up DataBase
-        this.db = ((HowlApplication) this.getApplication()).getDataBase();
 
         // Set up the login form.
         mUserView = (AutoCompleteTextView) findViewById(email);
@@ -157,7 +155,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
     }
 
     private boolean mayRequestContacts() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+        if (Build.VERSION.SDK_INT < M) {
             return true;
         }
         if (checkSelfPermission(READ_CONTACTS) == PackageManager.PERMISSION_GRANTED) {
@@ -167,7 +165,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             Snackbar.make(mUserView, R.string.permission_rationale, Snackbar.LENGTH_INDEFINITE)
                     .setAction(android.R.string.ok, new View.OnClickListener() {
                         @Override
-                        @TargetApi(Build.VERSION_CODES.M)
+                        @TargetApi(M)
                         public void onClick(View v) {
                             requestPermissions(new String[]{READ_CONTACTS}, REQUEST_READ_CONTACTS);
                         }
@@ -195,41 +193,43 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
     /**
      * Register to the app
      */
-    private void register(){
+    private void register() {
         // Store values at the time of the login attempt.
         String email = mUserView.getText().toString();
         String password = mPasswordView.getText().toString();
 
-        validateForm(email, password);
+        if (validateForm(email, password)) {
 
-        mAuth.createUserWithEmailAndPassword(email, password)
-                .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
-                    @Override
-                    public void onComplete(@NonNull Task<AuthResult> task) {
+            mAuth.createUserWithEmailAndPassword(email, password)
+                    .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
+                        @Override
+                        public void onComplete(@NonNull Task<AuthResult> task) {
 
-                        // If sign in fails, display a message to the user. If sign in succeeds
-                        // the auth state listener will be notified and logic to handle the
-                        // signed in user can be handled in the listener.
-                        if (!task.isSuccessful()) {
-                            Toast.makeText(LoginActivity.this, "Authentication failed.",
+                            // If sign in fails, display a message to the user. If sign in succeeds
+                            // the auth state listener will be notified and logic to handle the
+                            // signed in user can be handled in the listener.
+                            if (!task.isSuccessful()) {
+                                Toast.makeText(LoginActivity.this, "Authentication failed.",
+                                        Toast.LENGTH_SHORT).show();
+                            }
+
+                            Log.d(TAG, "createUserWithEmail:onComplete:" + task.isSuccessful());
+
+                            Toast.makeText(LoginActivity.this, "User registered.",
                                     Toast.LENGTH_SHORT).show();
+
+                            showProgress(false);
                         }
+                    });
 
-                        Log.d(TAG, "createUserWithEmail:onComplete:" + task.isSuccessful());
-
-                        Toast.makeText(LoginActivity.this, "User registered.",
-                                Toast.LENGTH_SHORT).show();
-
-                        showProgress(false);
-                    }
-                });
-
+        }
     }
-
     /**
      * Validation du formulaire d'inscription.
      */
-    private void validateForm(String email, String password){
+    private boolean validateForm(String email, String password){
+        boolean flag = true;
+
         // Reset errors.
         mUserView.setError(null);
         mPasswordView.setError(null);
@@ -260,13 +260,16 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             // There was an error; don't attempt login and focus the first
             // form field with an error.
             focusView.requestFocus();
+            flag = false;
         } else {
             // Show a progress spinner, and kick off a background task to
             // perform the user login attempt.
             showProgress(true);
-
+            flag = true;
 
         }
+
+        return flag;
 
     }
 
@@ -280,34 +283,39 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         String email = mUserView.getText().toString();
         String password = mPasswordView.getText().toString();
 
-        validateForm(email, password);
+        if (validateForm(email, password)) {
 
-        // signIng
-        mAuth.signInWithEmailAndPassword(email, password)
-                .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
-                    @Override
-                    public void onComplete(@NonNull Task<AuthResult> task) {
-                        Log.d(TAG, "signInWithEmail:onComplete:" + task.isSuccessful());
+            // signIng
+            mAuth.signInWithEmailAndPassword(email, password)
+                    .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
+                        @Override
+                        public void onComplete(@NonNull Task<AuthResult> task) {
+                            Log.d(TAG, "signInWithEmail:onComplete:" + task.isSuccessful());
 
 
+                            // If sign in fails, display a message to the user. If sign in succeeds
+                            // the auth state listener will be notified and logic to handle the
+                            // signed in user can be handled in the listener.
+                            if (!task.isSuccessful()) {
+                                Log.w(TAG, "signInWithEmail", task.getException());
+                                Toast.makeText(LoginActivity.this, "Authentication failed.",
+                                        Toast.LENGTH_SHORT).show();
 
-                        // If sign in fails, display a message to the user. If sign in succeeds
-                        // the auth state listener will be notified and logic to handle the
-                        // signed in user can be handled in the listener.
-                        if (!task.isSuccessful()) {
-                            Log.w(TAG, "signInWithEmail", task.getException());
-                            Toast.makeText(LoginActivity.this, "Authentication failed.",
-                                    Toast.LENGTH_SHORT).show();
+                            }
 
+                            showProgress(false);
+                            loginSucces();
                         }
+                    });
 
-                        // Changer d'activité , passer à la map
-                        // ......
 
-                        showProgress(false);
-                    }
-                });
+        }
+    }
 
+    // Callback if the user is logged
+    private void loginSucces(){
+        Intent intent = new Intent(this, MainActivity.class);
+        startActivity(intent);
 
     }
 
@@ -384,6 +392,19 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         }
 
         addEmailsToAutoComplete(emails);
+    }
+
+    //TODO: à déplacer dans l'activité de la map
+
+    public void saveMessage(Message msg){
+        // Write a message to the database
+        FirebaseDatabase database = FirebaseDatabase.getInstance();
+        DatabaseReference myRef = database.getReference("message");
+
+        myRef.setValue(msg);
+
+
+
     }
 
     @Override
