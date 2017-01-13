@@ -314,7 +314,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 
     // Callback if the user is logged
     private void loginSucces(){
-        Intent intent = new Intent(this, MainActivity.class);
+        Intent intent = new Intent(this, MapsActivity.class);
         startActivity(intent);
 
     }
@@ -394,18 +394,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         addEmailsToAutoComplete(emails);
     }
 
-    //TODO: à déplacer dans l'activité de la map
 
-    public void saveMessage(Message msg){
-        // Write a message to the database
-        FirebaseDatabase database = FirebaseDatabase.getInstance();
-        DatabaseReference myRef = database.getReference("message");
-
-        myRef.setValue(msg);
-
-
-
-    }
 
     @Override
     public void onLoaderReset(Loader<Cursor> cursorLoader) {
