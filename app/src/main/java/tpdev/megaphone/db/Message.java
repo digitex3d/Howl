@@ -16,15 +16,15 @@ import static android.R.attr.author;
  */
 public class Message {
     private String text;
-    private String lat;
-    private String lon;
+    private double lat;
+    private double lon;
     private String user;
 
     public Message() {
         // Default constructor required for calls to DataSnapshot.getValue(Message.class)
     }
 
-    public Message(String text, String lat, String lon, String user) {
+    public Message(String text, double lat, double lon, String user) {
         this.text = text;
         this.lat = lat;
         this.lon = lon;
@@ -35,16 +35,32 @@ public class Message {
         return text;
     }
 
-    public String getLat() {
+    public double getLat() {
         return lat;
     }
 
-    public String getLon() {
+    public double getLon() {
         return lon;
     }
 
     public String getUser() {
         return user;
+    }
+
+    public void setText(String text) {
+        this.text = text;
+    }
+
+    public void setLat(double lat) {
+        this.lat = lat;
+    }
+
+    public void setLon(double lon) {
+        this.lon = lon;
+    }
+
+    public void setUser(String user) {
+        this.user = user;
     }
 
     @Exclude
@@ -54,6 +70,7 @@ public class Message {
         result.put("lat", lat);
         result.put("lon", lon);
         result.put("user", user);
+
 
         return result;
     }

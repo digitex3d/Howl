@@ -7,15 +7,11 @@ import static android.os.Build.VERSION_CODES.M;
  */
 
 public class MessageFactory {
-    public static Message generateMessage(String text, String lat, String lon, String user) {
+    public static Message generateMessage(String text, double lat, double lon, String user) {
         boolean flag = true;
 
         // Validation paramètres
         if (text.length() == 0) flag = false;
-
-        if (lat.length() == 0) flag = false;
-
-        if (lon.length() == 0) flag = false;
 
         // Validation user
         if (user.length() == 0) flag = false;

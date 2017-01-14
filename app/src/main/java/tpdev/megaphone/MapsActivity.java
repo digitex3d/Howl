@@ -16,6 +16,7 @@ import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
 import android.text.Editable;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -33,8 +34,14 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.ChildEventListener;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
+
+import org.w3c.dom.Comment;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -51,6 +58,7 @@ import static tpdev.megaphone.db.MessageFactory.generateMessage;
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
     private static final int MY_PERMISSIONS_REQUEST_READ_LOCATION = 0;
+    private static final String TAG = "DEBUG";
     private ArrayList<MarkerOptions> listMarker;
     private GoogleMap mMap;
 
@@ -125,7 +133,52 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         }
 
+
+        // DB change event listener
+        ChildEventListener childEventListener = new ChildEventListener() {
+            @Override
+            public void onChildAdded(DataSnapshot dataSnapshot, String previousChildName) {
+                Log.d(TAG, "onChildAdded:" + dataSnapshot.getKey());
+
+                // A new message has been added, add it to the map
+                Message message = dataSnapshot.getValue(Message.class);
+                add_message_marker(message);
+                // ...
+            }
+
+            @Override
+            public void onChildChanged(DataSnapshot dataSnapshot, String previousChildName) {
+                Log.d(TAG, "onChildChanged:" + dataSnapshot.getKey());
+                // A new message has been added, add it to the map
+                Message message = dataSnapshot.getValue(Message.class);
+                add_message_marker(message);
+                // ...
+
+            }
+
+            @Override
+            public void onChildRemoved(DataSnapshot dataSnapshot) {
+                Log.d(TAG, "onChildRemoved:" + dataSnapshot.getKey());
+
+
+            }
+
+            @Override
+            public void onChildMoved(DataSnapshot dataSnapshot, String previousChildName) {
+                Log.d(TAG, "onChildMoved:" + dataSnapshot.getKey());
+
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                Log.w(TAG, "postComments:onCancelled", databaseError.toException());
+
+            }
+        };
+
+        databaseRef.child("messages").addChildEventListener(childEventListener);
     }
+
 
     @Override
     public void onRequestPermissionsResult(int requestCode,
@@ -167,16 +220,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             // Get push key
             String key = databaseRef.child("messages").push().getKey();
 
-
             double lat = locationService.getLatitude();
             double lon = locationService.getLongitude();
 
-
-
             // Create message
-            Message db_message = MessageFactory.generateMessage(msg,
-                    Double.toString(lat),
-                    Double.toString(lon),
+            Message db_message = MessageFactory.generateMessage(
+                    msg,
+                    lat,
+                    lon,
                     email);
 
             // Get map value
@@ -186,9 +237,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             childUpdates.put("/messages/" + key, messageValues);
             databaseRef.updateChildren(childUpdates);
 
-
-            add_message_marker(email, msg, new LatLng(lat, lon));
-
         }
 
 
@@ -196,40 +244,25 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
     /**
-     * ...............
-     * @param user
-     * @param msg
+     * Add a message on the map
      */
-    public void add_message_marker(String user, String msg, LatLng latLng) {
+    public void add_message_marker(Message msg_object) {
+
+        LatLng latLng = new LatLng(
+                msg_object.getLat(),
+                msg_object.getLon()
+        );
+
+        String user = msg_object.getUser();
+        String msg = msg_object.getText();
+
         MarkerOptions shout_marker = new MarkerOptions().position(latLng)
                 .title(user)
                 .snippet(msg);
 
         mMap.addMarker(shout_marker);
-        //float zoom = 16;
-        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 7));
 
         listMarker.add(shout_marker);
-
-
-        mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
-            @Override
-            public boolean onMarkerClick(Marker marker) {
-                marker.showInfoWindow();
-                //marker.remove();
-
-                return true;
-            }
-        });
-
-        mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
-            @Override
-            public void onMapClick(LatLng latLng) {
-                MarkerOptions newPoint = new MarkerOptions().position(latLng).title("lat : " + latLng.latitude + ", long :" + latLng.longitude);
-                listMarker.add(newPoint);
-                mMap.addMarker(newPoint);
-            }
-        });
 
     }
 
@@ -249,6 +282,25 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         // Add a marker in Sydney and move the camera
         listMarker = new ArrayList<>();
+
+        mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
+            @Override
+            public boolean onMarkerClick(Marker marker) {
+                marker.showInfoWindow();
+                //marker.remove();
+
+                return true;
+            }
+        });
+
+        mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
+            @Override
+            public void onMapClick(LatLng latLng) {
+                MarkerOptions newPoint = new MarkerOptions().position(latLng).title("lat : " + latLng.latitude + ", long :" + latLng.longitude);
+                listMarker.add(newPoint);
+                mMap.addMarker(newPoint);
+            }
+        });
 
     }
 

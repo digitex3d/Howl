@@ -19,7 +19,7 @@ public class MessageCollection {
         return messagesCollection;
     }
 
-    public void add_message(String msg, String lat, String lon, String user){
+    public void add_message(String msg, double lat, double lon, String user){
         messagesCollection.put(user, MessageFactory.generateMessage(msg, lat, lon, user));
 
     }

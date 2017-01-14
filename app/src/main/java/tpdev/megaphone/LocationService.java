@@ -6,13 +6,16 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationManager;
+import android.location.LocationListener;
 import android.os.Build;
+import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.widget.Toast;
 
-import com.google.android.gms.location.LocationListener;
+
+import static com.google.android.gms.wearable.DataMap.TAG;
 
 
 /**
@@ -22,10 +25,10 @@ import com.google.android.gms.location.LocationListener;
 public class LocationService implements LocationListener  {
 
     //The minimum distance to change updates in meters
-    private static final long MIN_DISTANCE_CHANGE_FOR_UPDATES = 0; // 10 meters
+    private static final long MIN_DISTANCE_CHANGE_FOR_UPDATES = 5; // 10 meters
 
     //The minimum time beetwen updates in milliseconds
-    private static final long MIN_TIME_BW_UPDATES = 0;//1000 * 60 * 1; // 1 minute
+    private static final long MIN_TIME_BW_UPDATES = 1000 * 60 * 5;//1000 * 60 * 1; // 1 minute
 
     private final static boolean forceNetwork = false;
 
@@ -107,7 +110,7 @@ public class LocationService implements LocationListener  {
                 if (isGPSEnabled)  {
                     locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,
                             MIN_TIME_BW_UPDATES,
-                            MIN_DISTANCE_CHANGE_FOR_UPDATES, (android.location.LocationListener)  this);
+                            MIN_DISTANCE_CHANGE_FOR_UPDATES,  this);
 
                     if (locationManager != null)  {
                         location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
@@ -115,12 +118,16 @@ public class LocationService implements LocationListener  {
                         this.longitude = location.getLongitude();
                     }
                 }
+
+
             }
         } catch (Exception ex)  {
-
+            Log.e(TAG, ex.getMessage());
 
         }
     }
+
+
 
     public double getLongitude() {
         return longitude;
@@ -143,9 +150,27 @@ public class LocationService implements LocationListener  {
 
     }
 
+
     @Override
     public void onLocationChanged(Location location) {
         this.latitude = location.getLatitude();
         this.longitude = location.getLongitude();
+
+        Log.w(TAG, "Location changed: " + this.latitude + " " + this.longitude );
+    }
+
+    @Override
+    public void onStatusChanged(String s, int i, Bundle bundle) {
+
+    }
+
+    @Override
+    public void onProviderEnabled(String s) {
+
+    }
+
+    @Override
+    public void onProviderDisabled(String s) {
+
     }
 }
