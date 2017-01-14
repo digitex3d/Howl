@@ -8,6 +8,7 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -20,6 +21,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -59,7 +61,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private static final int MY_PERMISSIONS_REQUEST_READ_LOCATION = 0;
     private static final String TAG = "DEBUG";
-    private ArrayList<MarkerOptions> listMarker;
+    private ArrayList<Marker> listMarker;
     private GoogleMap mMap;
 
 
@@ -260,10 +262,51 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .title(user)
                 .snippet(msg);
 
-        mMap.addMarker(shout_marker);
+        final Marker marker = mMap.addMarker(shout_marker);
+        marker.showInfoWindow();
 
-        listMarker.add(shout_marker);
 
+        listMarker.add(marker);
+
+        Log.w(TAG, "ADDING MARKER");
+        RemoveMarker runner = new RemoveMarker();
+        runner.execute(marker);
+
+    }
+
+    private class RemoveMarker extends AsyncTask<Marker, Void, Marker> {
+
+        @Override
+        protected Marker doInBackground(Marker... markers) {
+            try {
+                Thread.sleep(10000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            return markers[0];
+        }
+
+
+
+        @Override
+        protected void onPreExecute() {
+
+        }
+
+
+        protected void onPostExecute(Marker result) {
+            if( result != null) {
+                result.remove();
+                Log.w(TAG, "Marked removed");
+            }
+            else
+                Log.w(TAG, "Cant remove marker, it's null");
+        }
+
+        @Override
+        protected void onProgressUpdate(Void... values) {
+        }
     }
 
 
@@ -283,6 +326,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // Add a marker in Sydney and move the camera
         listMarker = new ArrayList<>();
 
+
         mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
             @Override
             public boolean onMarkerClick(Marker marker) {
@@ -293,14 +337,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         });
 
-        mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
-            @Override
-            public void onMapClick(LatLng latLng) {
-                MarkerOptions newPoint = new MarkerOptions().position(latLng).title("lat : " + latLng.latitude + ", long :" + latLng.longitude);
-                listMarker.add(newPoint);
-                mMap.addMarker(newPoint);
-            }
-        });
 
     }
 
