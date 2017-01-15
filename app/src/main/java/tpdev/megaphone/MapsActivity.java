@@ -2,6 +2,7 @@ package tpdev.megaphone;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.Application;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.location.Location;
@@ -48,6 +49,7 @@ import org.w3c.dom.Comment;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import tpdev.megaphone.db.Message;
@@ -59,7 +61,11 @@ import static android.R.id.message;
 import static android.icu.lang.UCharacter.GraphemeClusterBreak.T;
 import static tpdev.megaphone.db.MessageFactory.generateMessage;
 
-public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
+public class MapsActivity extends FragmentActivity implements
+        OnMapReadyCallback,
+        GoogleApiClient.ConnectionCallbacks,
+        GoogleApiClient.OnConnectionFailedListener,
+        MessageListFragment.Listener{
 
     private static final int MY_PERMISSIONS_REQUEST_READ_LOCATION = 0;
     private static final String TAG = "DEBUG";
@@ -79,11 +85,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     // Google API
     private GoogleApiClient mGoogleApiClient;
+    // Adapter
+    private MessageAdapter message_adapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
+
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
@@ -99,7 +108,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
 
 
-
         this.locationService = LocationService.getLocationManager(this.getApplicationContext());
 
         // Database
@@ -112,18 +120,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // Init to shout button
         shout_button = (Button) findViewById(R.id.shout_button);
 
-        if ( Build.VERSION.SDK_INT >= 23 &&
-                ContextCompat.checkSelfPermission( this, android.Manifest.permission.ACCESS_FINE_LOCATION ) != PackageManager.PERMISSION_GRANTED &&
-                ContextCompat.checkSelfPermission( this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            return  ;
-        }else{
+
+
+        // Here, thisActivity is the current activity
+        if (ContextCompat.checkSelfPermission(this,
+                android.Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+
             // Should we show an explanation?
             if (ActivityCompat.shouldShowRequestPermissionRationale(this,
                     android.Manifest.permission.ACCESS_FINE_LOCATION)) {
 
-                // Show an explanation to the user *asynchronously* -- don't block
-                // this thread waiting for the user's response! After the user
-                // sees the explanation, try again to request the permission.
+
 
             } else {
 
@@ -133,9 +141,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
                         MY_PERMISSIONS_REQUEST_READ_LOCATION);
 
-                // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
-                // app-defined int constant. The callback method gets the
-                // result of the request.
+
             }
         }
 
@@ -152,25 +158,26 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             public void onChildChanged(DataSnapshot dataSnapshot, String previousChildName) {
                 Log.d(TAG, "onChildChanged:" + dataSnapshot.getKey());
 
-               databaseRef.child("messages").orderByKey().limitToLast(1).
-                       addListenerForSingleValueEvent(new ValueEventListener() {
-                   @Override
-                   public void onDataChange(DataSnapshot dataSnapshot) {
+                databaseRef.child("messages").orderByKey().limitToLast(1).
+                        addListenerForSingleValueEvent(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(DataSnapshot dataSnapshot) {
 
-                       for (DataSnapshot eventSnapshot : dataSnapshot.getChildren()) {
+                                for (DataSnapshot eventSnapshot : dataSnapshot.getChildren()) {
 
-                           Message m = eventSnapshot.getValue(Message.class);
-                           add_message_marker(m);
-                           Log.d(TAG, "onDataChanged:" + dataSnapshot.getKey());
-                       }
+                                    Message m = eventSnapshot.getValue(Message.class);
+                                    addMessToHist(m);
+                                    add_message_marker(m);
+                                    Log.d(TAG, "onDataChanged:" + dataSnapshot.getKey());
+                                }
 
-                   }
+                            }
 
-                   @Override
-                   public void onCancelled(DatabaseError databaseError) {
+                            @Override
+                            public void onCancelled(DatabaseError databaseError) {
 
-                   }
-               });
+                            }
+                        });
 
 
 
@@ -197,34 +204,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         };
 
         databaseRef.addChildEventListener(childEventListener);
+
+
+
     }
 
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode,
-                                           String permissions[], int[] grantResults) {
-        switch (requestCode) {
-            case  MY_PERMISSIONS_REQUEST_READ_LOCATION: {
-                // If request is cancelled, the result arrays are empty.
-                if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-
-                    // permission was granted, yay! Do the
-                    // contacts-related task you need to do.
-
-                } else {
-
-                    // permission denied, boo! Disable the
-                    // functionality that depends on this permission.
-
-                }
-                return;
-            }
-
-            // other 'case' lines to check for other
-            // permissions this app might request
-        }
-    }
 
     /**
      * Fonction pour afficher un message sur la map
@@ -294,6 +279,26 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         RemoveMarker runner = new RemoveMarker();
         runner.execute(marker);
 
+    }
+
+    public List<Message> getMessagesList(){
+        Log.w(TAG, "Getting list from application");
+        return ((MegaphoneApplication) getApplication()).getMessagesList();
+    }
+
+
+
+    public void addMessToHist(Message msg) {
+        // Ajoute msg à l'adapteur
+        this.message_adapter.add( msg);
+        Log.v(TAG, "Ajoute à l'adapter le msg " + msg.getText());
+    }
+
+
+    @Override
+    public void registerAdapter(MessageAdapter adapter) {
+        this.message_adapter = adapter;
+        Log.v(TAG, "Adapter defini " + this.message_adapter);
     }
 
     private class RemoveMarker extends AsyncTask<Marker, Void, Marker> {
