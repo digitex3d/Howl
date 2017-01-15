@@ -41,6 +41,10 @@ public class MessageAdapter extends ArrayAdapter<Message>{
         TextView tv = (TextView)convertView.findViewById(R.id.textViewMessageItem);
         tv.setText(item.getText());
 
+        TextView uv = (TextView)convertView.findViewById(R.id.textViewUserItem);
+        uv.setText(item.getUser());
+
+
 
         return convertView;
     }
