@@ -219,6 +219,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             String msg = this.message_editText.getText().toString();
 
+            this.message_editText.setText("");
+
             // Get push key
             String key = databaseRef.child("messages").push().getKey();
 
