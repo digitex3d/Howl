@@ -41,6 +41,7 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 
 import org.w3c.dom.Comment;
@@ -54,6 +55,7 @@ import tpdev.megaphone.db.MessageCollection;
 import tpdev.megaphone.db.MessageFactory;
 
 import static android.R.attr.name;
+import static android.R.id.message;
 import static android.icu.lang.UCharacter.GraphemeClusterBreak.T;
 import static tpdev.megaphone.db.MessageFactory.generateMessage;
 
@@ -95,6 +97,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     .addApi(LocationServices.API)
                     .build();
         }
+
+
 
         this.locationService = LocationService.getLocationManager(this.getApplicationContext());
 
@@ -142,19 +146,33 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             public void onChildAdded(DataSnapshot dataSnapshot, String previousChildName) {
                 Log.d(TAG, "onChildAdded:" + dataSnapshot.getKey());
 
-                // A new message has been added, add it to the map
-                Message message = dataSnapshot.getValue(Message.class);
-                add_message_marker(message);
-                // ...
             }
 
             @Override
             public void onChildChanged(DataSnapshot dataSnapshot, String previousChildName) {
                 Log.d(TAG, "onChildChanged:" + dataSnapshot.getKey());
-                // A new message has been added, add it to the map
-                Message message = dataSnapshot.getValue(Message.class);
-                add_message_marker(message);
-                // ...
+
+               databaseRef.child("messages").orderByKey().limitToLast(1).
+                       addListenerForSingleValueEvent(new ValueEventListener() {
+                   @Override
+                   public void onDataChange(DataSnapshot dataSnapshot) {
+
+                       for (DataSnapshot eventSnapshot : dataSnapshot.getChildren()) {
+
+                           Message m = eventSnapshot.getValue(Message.class);
+                           add_message_marker(m);
+                           Log.d(TAG, "onDataChanged:" + dataSnapshot.getKey());
+                       }
+
+                   }
+
+                   @Override
+                   public void onCancelled(DatabaseError databaseError) {
+
+                   }
+               });
+
+
 
             }
 
@@ -178,7 +196,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         };
 
-        databaseRef.child("messages").addChildEventListener(childEventListener);
+        databaseRef.addChildEventListener(childEventListener);
     }
 
 
@@ -271,6 +289,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         listMarker.add(marker);
 
         Log.w(TAG, "ADDING MARKER");
+
+        // Remove marker thread
         RemoveMarker runner = new RemoveMarker();
         runner.execute(marker);
 
@@ -281,7 +301,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         @Override
         protected Marker doInBackground(Marker... markers) {
             try {
-                Thread.sleep(10000);
+                Thread.sleep(3000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
