@@ -230,7 +230,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     msg,
                     lat,
                     lon,
-                    email);
+                    email,
+                    true);
 
             // Get map value
             Map<String, Object> messageValues = db_message.toMap();

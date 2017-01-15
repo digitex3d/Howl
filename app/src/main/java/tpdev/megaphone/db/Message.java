@@ -19,16 +19,26 @@ public class Message {
     private double lat;
     private double lon;
     private String user;
+    private boolean visible;
 
     public Message() {
         // Default constructor required for calls to DataSnapshot.getValue(Message.class)
     }
 
-    public Message(String text, double lat, double lon, String user) {
+    public Message(String text, double lat, double lon, String user, boolean visible) {
         this.text = text;
         this.lat = lat;
         this.lon = lon;
         this.user = user;
+        this.visible = visible;
+    }
+
+    public boolean isVisible() {
+        return visible;
+    }
+
+    public void setVisible(boolean visible) {
+        this.visible = visible;
     }
 
     public String getText() {
