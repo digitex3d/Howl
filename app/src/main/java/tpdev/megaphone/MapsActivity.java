@@ -326,6 +326,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // Add a marker in Sydney and move the camera
         listMarker = new ArrayList<>();
 
+        double lat = locationService.getLatitude();
+        double lon = locationService.getLongitude();
+
+
+        /*double lat = 48.8464111;
+        double lg = 2.3548468;*/
+
+        //move the camera to the user's location, with an appropriate zoom
+        //googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(lat, lg), 7));
+
+        googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(lat, lon), 7));
 
         mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
             @Override
@@ -376,7 +387,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
     @Override
-    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+    public void onConnectionFailed(@NonNull     ConnectionResult connectionResult) {
 
     }
 }
