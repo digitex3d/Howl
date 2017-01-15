@@ -7,8 +7,7 @@ import static android.os.Build.VERSION_CODES.M;
  */
 
 public class MessageFactory {
-    public static Message generateMessage(String text, double lat, double lon, String user,
-                                          boolean visible) {
+    public static Message generateMessage(String text, double lat, double lon, String user) {
         boolean flag = true;
 
         // Validation paramètres
@@ -18,7 +17,7 @@ public class MessageFactory {
         if (user.length() == 0) flag = false;
 
         if (flag)
-            return new Message(text, lat, lon, user, visible);
+            return new Message(text, lat, lon, user);
 
         return null;
 
