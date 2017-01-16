@@ -1,29 +1,20 @@
 package tpdev.megaphone;
 
-import android.Manifest;
-import android.app.Activity;
-import android.app.Application;
-import android.content.Context;
+
 import android.content.pm.PackageManager;
-import android.location.Location;
-import android.location.LocationListener;
-import android.location.LocationManager;
-import android.net.Uri;
+
 import android.os.AsyncTask;
-import android.os.Build;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
-import android.text.Editable;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.TextView;
-import android.widget.Toast;
+
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -42,10 +33,9 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 
-import org.w3c.dom.Comment;
+
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -53,13 +43,8 @@ import java.util.List;
 import java.util.Map;
 
 import tpdev.megaphone.db.Message;
-import tpdev.megaphone.db.MessageCollection;
 import tpdev.megaphone.db.MessageFactory;
 
-import static android.R.attr.name;
-import static android.R.id.message;
-import static android.icu.lang.UCharacter.GraphemeClusterBreak.T;
-import static tpdev.megaphone.db.MessageFactory.generateMessage;
 
 public class MapsActivity extends FragmentActivity implements
         OnMapReadyCallback,
@@ -71,6 +56,8 @@ public class MapsActivity extends FragmentActivity implements
     private static final String TAG = "DEBUG";
     private ArrayList<Marker> listMarker;
     private GoogleMap mMap;
+
+    private ArrayList<ChildEventListener> histEventListenersArray;
 
 
     EditText message_editText;
@@ -108,18 +95,22 @@ public class MapsActivity extends FragmentActivity implements
         }
 
 
-        this.locationService = LocationService.getLocationManager(this.getApplicationContext());
-
         // Database
+        // Only for the first onCreate
         database = FirebaseDatabase.getInstance();
         databaseRef = database.getReference();
+
+        histEventListenersArray = new ArrayList<ChildEventListener>();
+
+        this.locationService = LocationService.getLocationManager(this.getApplicationContext());
+
+
 
         // Ref to EditText
         message_editText = (EditText) findViewById(R.id.message_editText);
 
         // Init to shout button
         shout_button = (Button) findViewById(R.id.shout_button);
-
 
 
         // Here, thisActivity is the current activity
@@ -130,13 +121,7 @@ public class MapsActivity extends FragmentActivity implements
             // Should we show an explanation?
             if (ActivityCompat.shouldShowRequestPermissionRationale(this,
                     android.Manifest.permission.ACCESS_FINE_LOCATION)) {
-
-
-
             } else {
-
-                // No explanation needed, we can request the permission.
-
                 ActivityCompat.requestPermissions(this,
                         new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
                         MY_PERMISSIONS_REQUEST_READ_LOCATION);
@@ -144,68 +129,6 @@ public class MapsActivity extends FragmentActivity implements
 
             }
         }
-
-
-        // DB change event listener
-        ChildEventListener childEventListener = new ChildEventListener() {
-            @Override
-            public void onChildAdded(DataSnapshot dataSnapshot, String previousChildName) {
-                Log.d(TAG, "onChildAdded:" + dataSnapshot.getKey());
-
-            }
-
-            @Override
-            public void onChildChanged(DataSnapshot dataSnapshot, String previousChildName) {
-                Log.d(TAG, "onChildChanged:" + dataSnapshot.getKey());
-
-                databaseRef.child("messages").orderByKey().limitToLast(1).
-                        addListenerForSingleValueEvent(new ValueEventListener() {
-                            @Override
-                            public void onDataChange(DataSnapshot dataSnapshot) {
-
-                                for (DataSnapshot eventSnapshot : dataSnapshot.getChildren()) {
-
-                                    Message m = eventSnapshot.getValue(Message.class);
-                                    addMessToHist(m);
-                                    add_message_marker(m);
-                                    Log.d(TAG, "onDataChanged:" + dataSnapshot.getKey());
-                                }
-
-                            }
-
-                            @Override
-                            public void onCancelled(DatabaseError databaseError) {
-
-                            }
-                        });
-
-
-
-            }
-
-            @Override
-            public void onChildRemoved(DataSnapshot dataSnapshot) {
-                Log.d(TAG, "onChildRemoved:" + dataSnapshot.getKey());
-
-
-            }
-
-            @Override
-            public void onChildMoved(DataSnapshot dataSnapshot, String previousChildName) {
-                Log.d(TAG, "onChildMoved:" + dataSnapshot.getKey());
-
-            }
-
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-                Log.w(TAG, "postComments:onCancelled", databaseError.toException());
-
-            }
-        };
-
-        databaseRef.addChildEventListener(childEventListener);
-
-
 
     }
 
@@ -290,7 +213,7 @@ public class MapsActivity extends FragmentActivity implements
 
     public void addMessToHist(Message msg) {
         // Ajoute msg à l'adapteur
-        this.message_adapter.add( msg);
+        this.message_adapter.insert( msg , 0);
         Log.v(TAG, "Ajoute à l'adapter le msg " + msg.getText());
     }
 
@@ -403,12 +326,120 @@ public class MapsActivity extends FragmentActivity implements
     }
 
     protected void onStart() {
-        mGoogleApiClient.connect();
         super.onStart();
+        mGoogleApiClient.connect();
+
+        // DB change event listener
+        ChildEventListener childEventListener = new ChildEventListener() {
+            @Override
+            public void onChildAdded(DataSnapshot dataSnapshot, String previousChildName) {
+                Log.d(TAG, "onChildAdded:" + dataSnapshot.getKey());
+
+            }
+
+            @Override
+            public void onChildChanged(DataSnapshot dataSnapshot, String previousChildName) {
+                Log.d(TAG, "onChildChanged:" + dataSnapshot.getKey());
+
+                databaseRef.child("messages").orderByKey().limitToLast(1).
+                        addListenerForSingleValueEvent(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(DataSnapshot dataSnapshot) {
+
+                                for (DataSnapshot eventSnapshot : dataSnapshot.getChildren()) {
+
+                                    Message m = eventSnapshot.getValue(Message.class);
+                                    add_message_marker(m);
+                                    Log.d(TAG, "onDataChanged:" + dataSnapshot.getKey());
+                                }
+
+                            }
+
+                            @Override
+                            public void onCancelled(DatabaseError databaseError) {
+
+                            }
+                        });
+
+
+            }
+
+            @Override
+            public void onChildRemoved(DataSnapshot dataSnapshot) {
+                Log.d(TAG, "onChildRemoved:" + dataSnapshot.getKey());
+
+
+            }
+
+            @Override
+            public void onChildMoved(DataSnapshot dataSnapshot, String previousChildName) {
+                Log.d(TAG, "onChildMoved:" + dataSnapshot.getKey());
+
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                Log.w(TAG, "postComments:onCancelled", databaseError.toException());
+
+            }
+        };
+
+        databaseRef.addChildEventListener(childEventListener);
+
+
+
+        // Message change event listener
+        ChildEventListener historicEventListener = new ChildEventListener() {
+            @Override
+            public void onChildAdded(DataSnapshot dataSnapshot, String previousChildName) {
+                Log.d(TAG, "onhistAdded:" + dataSnapshot.getKey());
+                Message m = dataSnapshot.getValue(Message.class);
+                addMessToHist(m);
+
+            }
+
+            @Override
+            public void onChildChanged(DataSnapshot dataSnapshot, String previousChildName) {
+                Log.d(TAG, "onhistChanged:" + dataSnapshot.getKey());
+
+
+            }
+
+            @Override
+            public void onChildRemoved(DataSnapshot dataSnapshot) {
+                Log.d(TAG, "onhistRemoved:" + dataSnapshot.getKey());
+
+
+            }
+
+            @Override
+            public void onChildMoved(DataSnapshot dataSnapshot, String previousChildName) {
+                Log.d(TAG, "onhistMoved:" + dataSnapshot.getKey());
+
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                Log.w(TAG, "hist:onCancelled", databaseError.toException());
+
+            }
+        };
+
+        // Only for the first onCreate
+        histEventListenersArray.add(historicEventListener);
+        databaseRef.child("messages").addChildEventListener(historicEventListener);
+
+
+    }
+
+    protected void removeAllListeners(){
+        for( ChildEventListener hel:  histEventListenersArray )
+            databaseRef.child("messages").removeEventListener(hel);
     }
 
     protected void onStop() {
         mGoogleApiClient.disconnect();
+        removeAllListeners();
         super.onStop();
     }
 
