@@ -135,7 +135,7 @@ public class MapsActivity extends FragmentActivity implements
 
 
     /**
-     * Fonction pour afficher un message sur la map
+     * Fonction pour ajouter un message à la bd
      */
     public void shout_message(View v) {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();

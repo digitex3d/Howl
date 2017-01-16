@@ -55,7 +55,8 @@ public class MessageListFragment extends Fragment {
         ListView lv = (ListView)view.findViewById(R.id.messages_listView);
 
         Log.w(TAG, "INIT ADAPTER");
-        adapter = new MessageAdapter(getContext(), R.layout.message_item,  mListener.getMessagesList());
+        adapter = new MessageAdapter(getContext(), R.layout.message_item,
+                mListener.getMessagesList());
         lv.setAdapter(adapter);
 
 
@@ -79,7 +80,7 @@ public class MessageListFragment extends Fragment {
         super.onAttach(context);
         if (context instanceof Listener) {
             mListener = (Listener) context;
-            Log.w(TAG, "ATTACHING LISTENER");
+
         } else {
             throw new RuntimeException(context.toString()
                     + " must implement Listener");
